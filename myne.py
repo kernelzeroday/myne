@@ -138,7 +138,7 @@ async def create_xmrig_commands(
         )
     if limited_threads > 0:
         commands.append(
-            f"{CPULIMIT_PATH} -l {CPU_LIMIT_LOW} -- {XMRIG_PATH} -o {DEFAULT_HOST} --threads=1"
+            f"{CPULIMIT_PATH} -c 1 -l {CPU_LIMIT_LOW} -- {XMRIG_PATH} -o {DEFAULT_HOST} --threads=1"
         )
     if free_threads > 0:
         commands.append(f"{XMRIG_PATH} -o {DEFAULT_HOST} --threads=1")
