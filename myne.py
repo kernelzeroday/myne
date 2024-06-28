@@ -16,7 +16,6 @@ LOG_FILE_JSON_PATH = "myne.json"
 DEFAULT_HOST = "kelsey-ai.local:3333"
 SCRIPT_PATH = os.path.realpath(__file__)
 LOCAL_SCRIPT_PATH = "/usr/local/bin/myne.py"
-HOME_SCRIPT_PATH = "/home/kelsey/bin/myne.py"
 CPULIMIT_PATH = "/usr/bin/cpulimit"
 XMRIG_PATH = "/usr/local/bin/xmrig"
 PGREP_CMD = ["pgrep", "xmrig"]
@@ -65,7 +64,7 @@ async def calculate_file_hash(file_path: str) -> str:
 
 
 @log_decorator
-async def install_self() -> bool:
+async def install_self(exec_script_path: str) -> bool:
     try:
         current_hash = await calculate_file_hash(SCRIPT_PATH)
         if current_hash is None:
@@ -104,8 +103,8 @@ async def install_self() -> bool:
 
 
 @log_decorator
-async def reinstall_self() -> bool:
-    subprocess.run(["cp", HOME_SCRIPT_PATH, LOCAL_SCRIPT_PATH], check=True)
+async def reinstall_self(exec_script_path: str) -> bool:
+    subprocess.run(["cp", exec_script_path, LOCAL_SCRIPT_PATH], check=True)
     subprocess.run(["systemctl", "restart", "myne.service"], check=True)
     return True
 
@@ -134,9 +133,13 @@ async def create_xmrig_commands(
 ) -> List[str]:
     commands = []
     if main_threads > 0:
-        commands.append(f"{XMRIG_PATH} -o {DEFAULT_HOST} --threads={main_threads} --cuda")
+        commands.append(
+            f"{XMRIG_PATH} -o {DEFAULT_HOST} --threads={main_threads} --cuda"
+        )
     if limited_threads > 0:
-        commands.append(f"{CPULIMIT_PATH} -l {CPU_LIMIT_LOW} -- {XMRIG_PATH} -o {DEFAULT_HOST} --threads=1")
+        commands.append(
+            f"{CPULIMIT_PATH} -l {CPU_LIMIT_LOW} -- {XMRIG_PATH} -o {DEFAULT_HOST} --threads=1"
+        )
     if free_threads > 0:
         commands.append(f"{XMRIG_PATH} -o {DEFAULT_HOST} --threads=1")
     return commands
@@ -165,17 +168,21 @@ async def run_xmrig_command(command: str) -> int:
 
 
 @log_decorator
-async def main():
+async def main(exec_script_path: str):
     try:
-        if await install_self():
+        if await install_self(exec_script_path):
             logging.info(
                 "\033[93mExiting after installation. Please restart the script manually.\033[0m"
             )
             sys.exit(0)
 
         cpu_cores = await get_cpu_cores()
-        main_threads, limited_threads, free_threads = await calculate_threads_and_limits(cpu_cores)
-        commands = await create_xmrig_commands(main_threads, limited_threads, free_threads)
+        main_threads, limited_threads, free_threads = (
+            await calculate_threads_and_limits(cpu_cores)
+        )
+        commands = await create_xmrig_commands(
+            main_threads, limited_threads, free_threads
+        )
 
         while True:
             if not await check_xmrig_running():
@@ -204,8 +211,8 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
-
-if __name__ == "__main__":
-    asyncio.run(main())
-
+    if len(sys.argv) != 2:
+        logging.error("\033[91mUsage: myne.py <exec_script_path>\033[0m")
+        sys.exit(1)
+    exec_script_path = sys.argv[1]
+    asyncio.run(main(exec_script_path))
